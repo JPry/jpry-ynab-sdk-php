@@ -1,0 +1,30 @@
+{
+  "name": "jpry/ynab",
+  "description": "Framework-agnostic YNAB API client for PHP",
+  "type": "library",
+  "license": "MIT",
+  "require": {
+    "php": "^8.2"
+  },
+  "require-dev": {
+    "pestphp/pest": "^3.0"
+  },
+  "suggest": {
+    "guzzlehttp/guzzle": "Use the built-in Guzzle request sender"
+  },
+  "autoload": {
+    "psr-4": {
+      "JPry\\YNAB\\": "src/"
+    }
+  },
+  "autoload-dev": {
+    "psr-4": {
+      "JPry\\YNAB\\Tests\\": "tests/"
+    }
+  },
+  "scripts": {
+    "test": "pest"
+  },
+  "minimum-stability": "stable",
+  "prefer-stable": true
+}
