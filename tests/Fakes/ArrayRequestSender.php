@@ -10,27 +10,27 @@ use JPry\YNAB\Http\Response;
 
 final class ArrayRequestSender implements RequestSender
 {
-    /** @var array<int,Request> */
-    public array $requests = [];
+	/** @var array<int,Request> */
+	public array $requests = [];
 
-    /** @var list<callable(Request):Response> */
-    private array $handlers;
+	/** @var list<callable(Request):Response> */
+	private array $handlers;
 
-    /** @param list<callable(Request):Response> $handlers */
-    public function __construct(array $handlers)
-    {
-        $this->handlers = $handlers;
-    }
+	/** @param list<callable(Request):Response> $handlers */
+	public function __construct(array $handlers)
+	{
+		$this->handlers = $handlers;
+	}
 
-    public function send(Request $request): Response
-    {
-        $this->requests[] = $request;
+	public function send(Request $request): Response
+	{
+		$this->requests[] = $request;
 
-        $handler = array_shift($this->handlers);
-        if ($handler === null) {
-            throw new \RuntimeException('No fake handler available for request: ' . $request->method . ' ' . $request->url);
-        }
+		$handler = array_shift($this->handlers);
+		if ($handler === null) {
+			throw new \RuntimeException("No fake handler available for request: {$request->method} {$request->url}");
+		}
 
-        return $handler($request);
-    }
+		return $handler($request);
+	}
 }

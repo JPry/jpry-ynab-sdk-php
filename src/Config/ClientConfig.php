@@ -6,10 +6,10 @@ namespace JPry\YNAB\Config;
 
 final readonly class ClientConfig
 {
-    public function __construct(
-        public string $baseUrl = 'https://api.ynab.com/v1',
-        public int $timeoutSeconds = 30,
-        public int $maxRetries = 2,
-    ) {
-    }
+	public function __construct(
+		public string $baseUrl = 'https://api.ynab.com/v1',
+		public int $timeoutSeconds = 30,
+		public int $maxRetries = 2,
+	) {
+	}
 }

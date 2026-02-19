@@ -7,10 +7,10 @@ namespace JPry\YNAB\Model;
 /** @template T */
 final readonly class ResourceCollection
 {
-    /** @param array<int,T> $items */
-    public function __construct(
-        public array $items,
-        public ?int $serverKnowledge = null,
-    ) {
-    }
+	/** @param array<int,T> $items */
+	public function __construct(
+		public array $items,
+		public ?int $serverKnowledge = null,
+	) {
+	}
 }

@@ -10,64 +10,66 @@ use JPry\YNAB\Http\RequestSender;
 
 final readonly class OAuthClient
 {
-    public function __construct(
-        private OAuthConfig $config,
-        private RequestSender $requestSender,
-    ) {
-    }
+	public function __construct(
+		private OAuthConfig $config,
+		private RequestSender $requestSender,
+	) {
+	}
 
-    public function authorizationUrl(string $state): string
-    {
-        $query = http_build_query([
-            'client_id' => $this->config->clientId,
-            'redirect_uri' => $this->config->redirectUri,
-            'response_type' => 'code',
-            'state' => $state,
-        ]);
+	public function authorizationUrl(string $state): string
+	{
+		$query = http_build_query([
+			'client_id' => $this->config->clientId,
+			'redirect_uri' => $this->config->redirectUri,
+			'response_type' => 'code',
+			'state' => $state,
+		]);
 
-        return rtrim($this->config->authorizeUrl, '?') . '?' . $query;
-    }
+		$authorizeUrl = rtrim($this->config->authorizeUrl, '?');
 
-    public function exchangeCodeForTokens(string $code): OAuthTokens
-    {
-        return $this->tokenRequest([
-            'grant_type' => 'authorization_code',
-            'code' => $code,
-            'client_id' => $this->config->clientId,
-            'client_secret' => $this->config->clientSecret,
-            'redirect_uri' => $this->config->redirectUri,
-        ]);
-    }
+		return "{$authorizeUrl}?{$query}";
+	}
 
-    public function refreshAccessToken(string $refreshToken): OAuthTokens
-    {
-        return $this->tokenRequest([
-            'grant_type' => 'refresh_token',
-            'refresh_token' => $refreshToken,
-            'client_id' => $this->config->clientId,
-            'client_secret' => $this->config->clientSecret,
-        ]);
-    }
+	public function exchangeCodeForTokens(string $code): OAuthTokens
+	{
+		return $this->tokenRequest([
+			'grant_type' => 'authorization_code',
+			'code' => $code,
+			'client_id' => $this->config->clientId,
+			'client_secret' => $this->config->clientSecret,
+			'redirect_uri' => $this->config->redirectUri,
+		]);
+	}
 
-    /** @param array<string,string> $form */
-    private function tokenRequest(array $form): OAuthTokens
-    {
-        $response = $this->requestSender->send(
-            new Request(
-                method: 'POST',
-                url: $this->config->tokenUrl,
-                headers: ['Accept' => 'application/json'],
-                form: $form,
-            ),
-        );
+	public function refreshAccessToken(string $refreshToken): OAuthTokens
+	{
+		return $this->tokenRequest([
+			'grant_type' => 'refresh_token',
+			'refresh_token' => $refreshToken,
+			'client_id' => $this->config->clientId,
+			'client_secret' => $this->config->clientSecret,
+		]);
+	}
 
-        $decoded = $response->json();
-        $tokens = OAuthTokens::fromArray($decoded);
+	/** @param array<string,string> $form */
+	private function tokenRequest(array $form): OAuthTokens
+	{
+		$response = $this->requestSender->send(
+			new Request(
+				method: 'POST',
+				url: $this->config->tokenUrl,
+				headers: ['Accept' => 'application/json'],
+				form: $form,
+			),
+		);
 
-        if ($tokens === null) {
-            throw new YnabException('Could not parse OAuth token response.');
-        }
+		$decoded = $response->json();
+		$tokens = OAuthTokens::fromArray($decoded);
 
-        return $tokens;
-    }
+		if ($tokens === null) {
+			throw new YnabException('Could not parse OAuth token response.');
+		}
+
+		return $tokens;
+	}
 }

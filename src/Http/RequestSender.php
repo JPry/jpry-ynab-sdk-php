@@ -6,5 +6,5 @@ namespace JPry\YNAB\Http;
 
 interface RequestSender
 {
-    public function send(Request $request): Response;
+	public function send(Request $request): Response;
 }

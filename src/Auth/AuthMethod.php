@@ -6,7 +6,7 @@ namespace JPry\YNAB\Auth;
 
 interface AuthMethod
 {
-    /** @param array<string,string> $headers */
-    /** @return array<string,string> */
-    public function apply(array $headers): array;
+	/** @param array<string,string> $headers */
+	/** @return array<string,string> */
+	public function apply(array $headers): array;
 }
