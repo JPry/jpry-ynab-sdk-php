@@ -4,23 +4,23 @@ declare(strict_types=1);
 
 namespace JPry\YNAB\Http;
 
+use GuzzleHttp\Client;
 use JPry\YNAB\Exception\YnabException;
 
 final class GuzzleRequestSender implements RequestSender
 {
-	private object $client;
+	private Client $client;
 
 	public function __construct(
 		string $baseUrl = 'https://api.ynab.com/v1',
 		int $timeoutSeconds = 30,
 	) {
-		if (!class_exists('GuzzleHttp\\Client')) {
+		if (!class_exists(Client::class)) {
 			throw new YnabException('guzzlehttp/guzzle is required for GuzzleRequestSender. Install it or provide a custom RequestSender implementation.');
 		}
 
-		$clientClass = 'GuzzleHttp\\Client';
 		$normalizedBaseUrl = rtrim($baseUrl, '/');
-		$this->client = new $clientClass([
+		$this->client = new Client([
 			'base_uri' => "{$normalizedBaseUrl}/",
 			'timeout' => $timeoutSeconds,
 		]);

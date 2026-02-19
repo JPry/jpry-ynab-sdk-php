@@ -12,7 +12,7 @@ final readonly class ApiKeyAuth implements AuthMethod
 
 	public function apply(array $headers): array
 	{
-		$headers['Authorization'] = 'Bearer ' . $this->apiKey;
+		$headers['Authorization'] = "Bearer {$this->apiKey}";
 
 		return $headers;
 	}

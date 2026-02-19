@@ -18,7 +18,7 @@ final class OAuthTokenAuth implements AuthMethod
 
 	public function apply(array $headers): array
 	{
-		$headers['Authorization'] = 'Bearer ' . $this->accessToken;
+		$headers['Authorization'] = "Bearer {$this->accessToken}";
 
 		return $headers;
 	}
