@@ -34,7 +34,7 @@ final class YnabClient
 	public static function withApiKey(string $apiKey, ?RequestSender $requestSender = null, ?ClientConfig $config = null): self
 	{
 		$config ??= new ClientConfig();
-		$requestSender ??= new GuzzleRequestSender($config->baseUrl, $config->timeoutSeconds);
+		$requestSender ??= new GuzzleRequestSender($config);
 
 		return new self($requestSender, new ApiKeyAuth($apiKey), $config);
 	}
@@ -43,7 +43,7 @@ final class YnabClient
 	public static function withOAuthToken(string $accessToken, ?callable $refreshAccessToken = null, ?RequestSender $requestSender = null, ?ClientConfig $config = null): self
 	{
 		$config ??= new ClientConfig();
-		$requestSender ??= new GuzzleRequestSender($config->baseUrl, $config->timeoutSeconds);
+		$requestSender ??= new GuzzleRequestSender($config);
 
 		return new self($requestSender, new OAuthTokenAuth($accessToken, $refreshAccessToken), $config);
 	}

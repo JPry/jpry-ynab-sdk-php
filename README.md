@@ -29,8 +29,15 @@ composer require guzzlehttp/guzzle
 
 ```php
 use JPry\YNAB\Client\YnabClient;
+use JPry\YNAB\Config\ClientConfig;
 
-$client = YnabClient::withApiKey('your-api-key');
+$config = new ClientConfig(
+    baseUrl: 'https://api.ynab.com/v1',
+    timeoutSeconds: 30,
+    maxRetries: 2,
+);
+
+$client = YnabClient::withApiKey('your-api-key', config: $config);
 $budgets = $client->budgets();
 $transactions = $client->transactions('budget-id', ['since_date' => '2026-01-01']);
 ```
@@ -39,10 +46,13 @@ $transactions = $client->transactions('budget-id', ['since_date' => '2026-01-01'
 
 ```php
 use JPry\YNAB\Client\YnabClient;
+use JPry\YNAB\Config\ClientConfig;
 
+$config = new ClientConfig();
 $client = YnabClient::withOAuthToken(
     accessToken: 'access-token',
     refreshAccessToken: fn (): string => 'new-access-token',
+    config: $config,
 );
 ```
 
@@ -52,6 +62,7 @@ $client = YnabClient::withOAuthToken(
 use JPry\YNAB\Http\GuzzleRequestSender;
 use JPry\YNAB\OAuth\OAuthClient;
 use JPry\YNAB\OAuth\OAuthConfig;
+use JPry\YNAB\Config\ClientConfig;
 
 $oauth = new OAuthClient(
     new OAuthConfig(
@@ -59,7 +70,7 @@ $oauth = new OAuthClient(
         clientSecret: 'client-secret',
         redirectUri: 'https://example.com/oauth/callback',
     ),
-    new GuzzleRequestSender(baseUrl: 'https://api.ynab.com/v1'),
+    new GuzzleRequestSender(new ClientConfig()),
 );
 
 $authUrl = $oauth->authorizationUrl('state-value');
