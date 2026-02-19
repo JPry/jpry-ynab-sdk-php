@@ -1,0 +1,201 @@
+name: Prepare Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: "Semantic version bump level"
+        required: true
+        default: patch
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+      publish:
+        description: "Publish immediately (otherwise create draft release)"
+        required: true
+        default: false
+        type: boolean
+
+permissions:
+  contents: write
+  pull-requests: read
+
+jobs:
+  prepare-release:
+    name: Prepare Tag + Release Notes
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Calculate next version and generate changelog
+        id: release-meta
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const bump = core.getInput('bump', { required: true });
+
+            const semverRegex = /^v(\d+)\.(\d+)\.(\d+)$/;
+            const tagList = await github.paginate(github.rest.repos.listTags, {
+              owner,
+              repo,
+              per_page: 100,
+            });
+
+            const semverTags = tagList
+              .map((t) => t.name)
+              .filter((name) => semverRegex.test(name))
+              .map((name) => {
+                const match = name.match(semverRegex);
+                return {
+                  name,
+                  major: Number(match[1]),
+                  minor: Number(match[2]),
+                  patch: Number(match[3]),
+                };
+              })
+              .sort((a, b) => {
+                if (a.major !== b.major) return b.major - a.major;
+                if (a.minor !== b.minor) return b.minor - a.minor;
+                return b.patch - a.patch;
+              });
+
+            const previousTag = semverTags.length > 0 ? semverTags[0].name : null;
+
+            let nextMajor = 0;
+            let nextMinor = 0;
+            let nextPatch = 0;
+
+            if (previousTag !== null) {
+              const prev = semverTags[0];
+              nextMajor = prev.major;
+              nextMinor = prev.minor;
+              nextPatch = prev.patch;
+            }
+
+            if (bump === 'major') {
+              nextMajor += 1;
+              nextMinor = 0;
+              nextPatch = 0;
+            } else if (bump === 'minor') {
+              nextMinor += 1;
+              nextPatch = 0;
+            } else {
+              nextPatch += 1;
+            }
+
+            const nextTag = `v${nextMajor}.${nextMinor}.${nextPatch}`;
+
+            let compareBase = null;
+            if (previousTag !== null) {
+              compareBase = previousTag;
+            } else {
+              const defaultBranch = context.payload.repository.default_branch;
+              const commits = await github.paginate(github.rest.repos.listCommits, {
+                owner,
+                repo,
+                sha: defaultBranch,
+                per_page: 100,
+              });
+              if (commits.length > 0) {
+                compareBase = commits[commits.length - 1].sha;
+              }
+            }
+
+            let commits = [];
+            if (compareBase) {
+              const compare = await github.rest.repos.compareCommits({
+                owner,
+                repo,
+                base: compareBase,
+                head: context.sha,
+              });
+              commits = compare.data.commits ?? [];
+            }
+
+            const prsByNumber = new Map();
+            const directCommits = [];
+
+            for (const commit of commits) {
+              if (!commit.sha) continue;
+
+              const prs = await github.rest.repos.listPullRequestsAssociatedWithCommit({
+                owner,
+                repo,
+                commit_sha: commit.sha,
+              });
+
+              const mergedPrs = (prs.data ?? []).filter((pr) => pr.merged_at !== null);
+              if (mergedPrs.length > 0) {
+                for (const pr of mergedPrs) {
+                  prsByNumber.set(pr.number, pr);
+                }
+                continue;
+              }
+
+              const shortSha = commit.sha.slice(0, 7);
+              const title = (commit.commit?.message ?? '').split('\n')[0].trim();
+              directCommits.push(`- ${title} (${shortSha})`);
+            }
+
+            const prs = Array.from(prsByNumber.values()).sort((a, b) => a.number - b.number);
+
+            const notes = [];
+            notes.push(`# ${nextTag}`);
+            notes.push('');
+            if (previousTag) {
+              notes.push(`Changes since ${previousTag}`);
+            } else {
+              notes.push('Initial release notes');
+            }
+            notes.push('');
+
+            if (prs.length > 0) {
+              notes.push('## Merged Pull Requests');
+              for (const pr of prs) {
+                notes.push(`- #${pr.number} ${pr.title} (@${pr.user?.login ?? 'unknown'})`);
+              }
+              notes.push('');
+            }
+
+            if (directCommits.length > 0) {
+              notes.push('## Other Changes');
+              notes.push(...directCommits);
+              notes.push('');
+            }
+
+            if (prs.length === 0 && directCommits.length === 0) {
+              notes.push('- No user-facing changes detected in this range.');
+              notes.push('');
+            }
+
+            const notesBody = notes.join('\n');
+            const fs = require('fs');
+            fs.writeFileSync('release-notes.md', notesBody);
+
+            core.setOutput('previous_tag', previousTag ?? '');
+            core.setOutput('next_tag', nextTag);
+            core.setOutput('notes_path', 'release-notes.md');
+
+      - name: Echo release plan
+        run: |
+          echo "Previous tag: ${{ steps.release-meta.outputs.previous_tag || 'none' }}"
+          echo "Next tag: ${{ steps.release-meta.outputs.next_tag }}"
+          echo "Publish now: ${{ inputs.publish }}"
+
+      - name: Create GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.release-meta.outputs.next_tag }}
+          name: ${{ steps.release-meta.outputs.next_tag }}
+          body_path: ${{ steps.release-meta.outputs.notes_path }}
+          draft: ${{ !inputs.publish }}
+          prerelease: false
+          target_commitish: ${{ github.sha }}
