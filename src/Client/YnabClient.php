@@ -136,20 +136,26 @@ final class YnabClient
 		return $this->collection("/budgets/{$budgetId}/transactions", $query, 'transactions', static fn (array $row): ?Transaction => Transaction::fromArray($row));
 	}
 
-	/** @param array<string,mixed> $payload */
-	/** @return array<string,mixed> */
+	/**
+	 * @param array<string,mixed> $payload
+	 * @return array<string,mixed>
+	 */
 	public function patchTransactions(string $budgetId, array $payload): array
 	{
 		return $this->request('PATCH', "/budgets/{$budgetId}/transactions", [], $payload);
 	}
 
-	/** @return array<string,mixed> */
+	/**
+	 * @return array<string,mixed>
+	 */
 	private function get(string $path, array $query = []): array
 	{
 		return $this->request('GET', $path, $query, null);
 	}
 
-	/** @return array<string,mixed> */
+	/**
+	 * @return array<string,mixed>
+	 */
 	private function request(string $method, string $path, array $query, ?array $json): array
 	{
 		$base = rtrim($this->config->baseUrl, '/');
@@ -224,9 +230,11 @@ final class YnabClient
 		);
 	}
 
-	/** @template T */
-	/** @param callable(array<string,mixed>):?T $mapper */
-	/** @return ResourceCollection<T> */
+	/**
+	 * @template T
+	 * @param callable(array<string,mixed>):?T $mapper
+	 * @return ResourceCollection<T>
+	 */
 	private function collection(string $path, array $query, string $key, callable $mapper): ResourceCollection
 	{
 		$items = [];
@@ -272,8 +280,10 @@ final class YnabClient
 		return is_numeric($value) ? (int) $value : null;
 	}
 
-	/** @param array<string,mixed> $data */
-	/** @return array<string,string>|null */
+	/**
+	 * @param array<string,mixed> $data
+	 * @return array<string,string>|null
+	 */
 	private function nextPageQuery(array $data): ?array
 	{
 		$nextPage = $data['next_page'] ?? null;

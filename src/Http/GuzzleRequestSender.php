@@ -63,8 +63,10 @@ final class GuzzleRequestSender implements RequestSender
 		);
 	}
 
-	/** @param array<string,array<int,string>> $headers */
-	/** @return array<string,string> */
+	/**
+	 * @param array<string,array<int,string>> $headers
+	 * @return array<string,string>
+	 */
 	private function flattenHeaders(array $headers): array
 	{
 		$flat = [];
