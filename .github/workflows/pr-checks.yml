@@ -1,9 +1,12 @@
-name: PR Checks
+name: CI Checks
 
 on:
   pull_request:
     branches:
       - '**'
+  push:
+    branches:
+      - main
 
 jobs:
   tests:
@@ -27,7 +30,7 @@ jobs:
         run: ./vendor/bin/pest --compact
 
   style:
-    name: Code Style (PR Files)
+    name: Code Style
     runs-on: ubuntu-latest
 
     steps:
@@ -44,16 +47,21 @@ jobs:
           tools: php-cs-fixer
 
       - name: Get changed PHP files
+        if: github.event_name == 'pull_request'
         id: changed-php
         uses: tj-actions/changed-files@v46
         with:
           files: |
             **/*.php
 
-      - name: Check style for changed PHP files
-        if: steps.changed-php.outputs.any_changed == 'true'
+      - name: Check style for changed PHP files (PR)
+        if: github.event_name == 'pull_request' && steps.changed-php.outputs.any_changed == 'true'
         run: php-cs-fixer fix --dry-run --diff --verbose --path-mode=intersection ${{ steps.changed-php.outputs.all_changed_files }}
 
       - name: Skip style check when no PHP files changed
-        if: steps.changed-php.outputs.any_changed != 'true'
+        if: github.event_name == 'pull_request' && steps.changed-php.outputs.any_changed != 'true'
         run: echo "No changed PHP files in this PR."
+
+      - name: Check style for full codebase (push)
+        if: github.event_name != 'pull_request'
+        run: php-cs-fixer fix --dry-run --diff --verbose src tests
