@@ -335,6 +335,130 @@ final readonly class YnabClient
 	}
 
 	/**
+	 * @param array<string,mixed> $payload
+	 * @return array<string,mixed>
+	 */
+	public function createTransactions(string $planId, array $payload): array
+	{
+		return $this->request('POST', "/plans/{$planId}/transactions", [], $payload);
+	}
+
+	/**
+	 * @param array<string,mixed> $payload
+	 * @return array<string,mixed>
+	 */
+	public function importTransactions(string $planId, array $payload): array
+	{
+		return $this->request('POST', "/plans/{$planId}/transactions/import", [], $payload);
+	}
+
+	/**
+	 * @param array<string,mixed> $payload
+	 * @return array<string,mixed>
+	 */
+	public function updateTransaction(string $planId, string $transactionId, array $payload): array
+	{
+		return $this->request('PUT', "/plans/{$planId}/transactions/{$transactionId}", [], $payload);
+	}
+
+	/**
+	 * @return array<string,mixed>
+	 */
+	public function deleteTransaction(string $planId, string $transactionId): array
+	{
+		return $this->request('DELETE', "/plans/{$planId}/transactions/{$transactionId}", [], null);
+	}
+
+	/**
+	 * @param array<string,mixed> $payload
+	 * @return array<string,mixed>
+	 */
+	public function createScheduledTransaction(string $planId, array $payload): array
+	{
+		return $this->request('POST', "/plans/{$planId}/scheduled_transactions", [], $payload);
+	}
+
+	/**
+	 * @param array<string,mixed> $payload
+	 * @return array<string,mixed>
+	 */
+	public function updateScheduledTransaction(string $planId, string $scheduledTransactionId, array $payload): array
+	{
+		return $this->request('PUT', "/plans/{$planId}/scheduled_transactions/{$scheduledTransactionId}", [], $payload);
+	}
+
+	/**
+	 * @return array<string,mixed>
+	 */
+	public function deleteScheduledTransaction(string $planId, string $scheduledTransactionId): array
+	{
+		return $this->request('DELETE', "/plans/{$planId}/scheduled_transactions/{$scheduledTransactionId}", [], null);
+	}
+
+	/**
+	 * @param array<string,mixed> $payload
+	 * @return array<string,mixed>
+	 */
+	public function createAccount(string $planId, array $payload): array
+	{
+		return $this->request('POST', "/plans/{$planId}/accounts", [], $payload);
+	}
+
+	/**
+	 * @param array<string,mixed> $payload
+	 * @return array<string,mixed>
+	 */
+	public function createCategory(string $planId, array $payload): array
+	{
+		return $this->request('POST', "/plans/{$planId}/categories", [], $payload);
+	}
+
+	/**
+	 * @param array<string,mixed> $payload
+	 * @return array<string,mixed>
+	 */
+	public function updateCategory(string $planId, string $categoryId, array $payload): array
+	{
+		return $this->request('PATCH', "/plans/{$planId}/categories/{$categoryId}", [], $payload);
+	}
+
+	/**
+	 * @param array<string,mixed> $payload
+	 * @return array<string,mixed>
+	 */
+	public function updateMonthCategory(string $planId, string $month, string $categoryId, array $payload): array
+	{
+		return $this->request('PATCH', "/plans/{$planId}/months/{$month}/categories/{$categoryId}", [], $payload);
+	}
+
+	/**
+	 * @param array<string,mixed> $payload
+	 * @return array<string,mixed>
+	 */
+	public function createCategoryGroup(string $planId, array $payload): array
+	{
+		return $this->request('POST', "/plans/{$planId}/category_groups", [], $payload);
+	}
+
+	/**
+	 * @param array<string,mixed> $payload
+	 * @return array<string,mixed>
+	 */
+	public function updateCategoryGroup(string $planId, string $categoryGroupId, array $payload): array
+	{
+		return $this->request('PATCH', "/plans/{$planId}/category_groups/{$categoryGroupId}", [], $payload);
+	}
+
+	/**
+	 * @param array<string,mixed> $payload
+	 * @return array<string,mixed>
+	 */
+	public function updatePayee(string $planId, string $payeeId, array $payload): array
+	{
+		return $this->request('PATCH', "/plans/{$planId}/payees/{$payeeId}", [], $payload);
+	}
+
+	/**
 	 * @return array<string,mixed>
 	 */
 	private function get(string $path, array $query = []): array

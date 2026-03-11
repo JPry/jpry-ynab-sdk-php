@@ -271,3 +271,82 @@ it('retrieves category details for current and explicit month contexts', functio
 	expect($sender->requests[0]->getUri()->getPath())->toEndWith('/plans/P1/categories/C1');
 	expect($sender->requests[1]->getUri()->getPath())->toEndWith('/plans/P1/months/2026-03-01/categories/C1');
 });
+
+it('supports plan-scoped write endpoints from openapi coverage audit', function () {
+	$sender = new ArrayRequestSender([
+		fn ($request) => new Response(200, [], '{"data":{"transaction_ids":["T1"]}}'),
+		fn ($request) => new Response(200, [], '{"data":{"transaction_ids":["T2"]}}'),
+		fn ($request) => new Response(200, [], '{"data":{"transaction":{"id":"T1"}}}'),
+		fn ($request) => new Response(200, [], '{"data":{"transaction":{"id":"T1"}}}'),
+		fn ($request) => new Response(201, [], '{"data":{"scheduled_transaction":{"id":"ST1"}}}'),
+		fn ($request) => new Response(200, [], '{"data":{"scheduled_transaction":{"id":"ST1"}}}'),
+		fn ($request) => new Response(200, [], '{"data":{"scheduled_transaction":{"id":"ST1"}}}'),
+		fn ($request) => new Response(201, [], '{"data":{"account":{"id":"A1"}}}'),
+		fn ($request) => new Response(201, [], '{"data":{"category":{"id":"C1"}}}'),
+		fn ($request) => new Response(200, [], '{"data":{"category":{"id":"C1"}}}'),
+		fn ($request) => new Response(200, [], '{"data":{"category":{"id":"C1"}}}'),
+		fn ($request) => new Response(201, [], '{"data":{"category_group":{"id":"CG1"}}}'),
+		fn ($request) => new Response(200, [], '{"data":{"category_group":{"id":"CG1"}}}'),
+		fn ($request) => new Response(200, [], '{"data":{"payee":{"id":"PY1"}}}'),
+	]);
+
+	$client = YnabClient::withApiKey('api-key-123', requestSender: $sender);
+
+	$client->createTransactions('P1', ['transaction' => ['account_id' => 'A1', 'amount' => -1000]]);
+	$client->importTransactions('P1', ['transactions' => [['account_id' => 'A1', 'amount' => -1000]]]);
+	$client->updateTransaction('P1', 'T1', ['transaction' => ['memo' => 'Updated']]);
+	$client->deleteTransaction('P1', 'T1');
+	$client->createScheduledTransaction('P1', ['scheduled_transaction' => ['account_id' => 'A1', 'date' => '2026-04-01']]);
+	$client->updateScheduledTransaction('P1', 'ST1', ['scheduled_transaction' => ['memo' => 'Changed']]);
+	$client->deleteScheduledTransaction('P1', 'ST1');
+	$client->createAccount('P1', ['account' => ['name' => 'New Account']]);
+	$client->createCategory('P1', ['category' => ['name' => 'New Category', 'category_group_id' => 'CG1']]);
+	$client->updateCategory('P1', 'C1', ['category' => ['name' => 'Renamed']]);
+	$client->updateMonthCategory('P1', '2026-03-01', 'C1', ['category' => ['budgeted' => 1234]]);
+	$client->createCategoryGroup('P1', ['category_group' => ['name' => 'New Group']]);
+	$client->updateCategoryGroup('P1', 'CG1', ['category_group' => ['name' => 'Renamed Group']]);
+	$client->updatePayee('P1', 'PY1', ['payee' => ['name' => 'Renamed Payee']]);
+
+	expect($sender->requests[0]->getMethod())->toBe('POST');
+	expect($sender->requests[0]->getUri()->getPath())->toEndWith('/plans/P1/transactions');
+	expect((string) $sender->requests[0]->getBody())->toContain('"transaction"');
+
+	expect($sender->requests[1]->getMethod())->toBe('POST');
+	expect($sender->requests[1]->getUri()->getPath())->toEndWith('/plans/P1/transactions/import');
+
+	expect($sender->requests[2]->getMethod())->toBe('PUT');
+	expect($sender->requests[2]->getUri()->getPath())->toEndWith('/plans/P1/transactions/T1');
+
+	expect($sender->requests[3]->getMethod())->toBe('DELETE');
+	expect($sender->requests[3]->getUri()->getPath())->toEndWith('/plans/P1/transactions/T1');
+
+	expect($sender->requests[4]->getMethod())->toBe('POST');
+	expect($sender->requests[4]->getUri()->getPath())->toEndWith('/plans/P1/scheduled_transactions');
+
+	expect($sender->requests[5]->getMethod())->toBe('PUT');
+	expect($sender->requests[5]->getUri()->getPath())->toEndWith('/plans/P1/scheduled_transactions/ST1');
+
+	expect($sender->requests[6]->getMethod())->toBe('DELETE');
+	expect($sender->requests[6]->getUri()->getPath())->toEndWith('/plans/P1/scheduled_transactions/ST1');
+
+	expect($sender->requests[7]->getMethod())->toBe('POST');
+	expect($sender->requests[7]->getUri()->getPath())->toEndWith('/plans/P1/accounts');
+
+	expect($sender->requests[8]->getMethod())->toBe('POST');
+	expect($sender->requests[8]->getUri()->getPath())->toEndWith('/plans/P1/categories');
+
+	expect($sender->requests[9]->getMethod())->toBe('PATCH');
+	expect($sender->requests[9]->getUri()->getPath())->toEndWith('/plans/P1/categories/C1');
+
+	expect($sender->requests[10]->getMethod())->toBe('PATCH');
+	expect($sender->requests[10]->getUri()->getPath())->toEndWith('/plans/P1/months/2026-03-01/categories/C1');
+
+	expect($sender->requests[11]->getMethod())->toBe('POST');
+	expect($sender->requests[11]->getUri()->getPath())->toEndWith('/plans/P1/category_groups');
+
+	expect($sender->requests[12]->getMethod())->toBe('PATCH');
+	expect($sender->requests[12]->getUri()->getPath())->toEndWith('/plans/P1/category_groups/CG1');
+
+	expect($sender->requests[13]->getMethod())->toBe('PATCH');
+	expect($sender->requests[13]->getUri()->getPath())->toEndWith('/plans/P1/payees/PY1');
+});

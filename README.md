@@ -54,6 +54,8 @@ $transactions = $client->transactions('plan-id', ['since_date' => '2026-01-01'])
 
 Legacy budget-named APIs (`budgets()`, `defaultBudget()`, and `JPry\\YNAB\\Model\\Budget`) remain available for backward compatibility but are deprecated and emit `E_USER_DEPRECATED` warnings.
 
+Most mutating methods (create/update/delete) return the raw `data` payload from the API response as `array<string,mixed>`.
+
 ### OAuth token
 
 ```php
