@@ -75,6 +75,16 @@ $client->updateTransaction(
 );
 ```
 
+## Documentation
+
+- [Documentation Index](./docs/README.md)
+- [Getting Started](./docs/getting-started.md)
+- [API Usage](./docs/api-usage.md)
+- [Mutations and Request Models](./docs/mutations.md)
+- [OAuth Flow](./docs/oauth-flow.md)
+- [Migration Notes: Budgets to Plans](./docs/migration-plans.md)
+- [OpenAPI Spec Snapshot](./openapi/README.md)
+
 ### OAuth token
 
 ```php
