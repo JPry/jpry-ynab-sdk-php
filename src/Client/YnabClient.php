@@ -18,6 +18,7 @@ use JPry\YNAB\Model\Account;
 use JPry\YNAB\Model\Budget;
 use JPry\YNAB\Model\Category;
 use JPry\YNAB\Model\Payee;
+use JPry\YNAB\Model\Plan;
 use JPry\YNAB\Model\ResourceCollection;
 use JPry\YNAB\Model\Transaction;
 use Psr\Http\Message\ResponseInterface;
@@ -48,22 +49,48 @@ final readonly class YnabClient
 		return new self($requestSender, new OAuthTokenAuth($accessToken, $refreshAccessToken), $config);
 	}
 
-	/** @return ResourceCollection<Budget> */
+	/**
+	 * @deprecated YNAB API v1.79.0 renamed budgets to plans. Use plans() instead.
+	 * @return ResourceCollection<Budget>
+	 */
 	public function budgets(array $query = []): ResourceCollection
 	{
-		return $this->collection('/budgets', $query, 'budgets', static fn (array $row): ?Budget => Budget::fromArray($row));
+		$this->warnBudgetDeprecation('budgets()', 'plans()');
+
+		return $this->collection('/plans', $query, ['plans', 'budgets'], static fn (array $row): ?Budget => Budget::fromArray($row));
 	}
 
+	/** @return ResourceCollection<Plan> */
+	public function plans(array $query = []): ResourceCollection
+	{
+		return $this->collection('/plans', $query, ['plans', 'budgets'], static fn (array $row): ?Plan => Plan::fromArray($row));
+	}
+
+	/**
+	 * @deprecated YNAB API v1.79.0 renamed default_budget to default_plan. Use defaultPlan() instead.
+	 */
 	public function defaultBudget(): ?Budget
 	{
-		$data = $this->get('/budgets/default');
-		return is_array($data['budget'] ?? null) ? Budget::fromArray($data['budget']) : null;
+		$this->warnBudgetDeprecation('defaultBudget()', 'defaultPlan()');
+
+		$data = $this->get('/plans/default');
+		$default = $this->firstArrayByKeys($data, ['budget', 'plan']);
+
+		return $default === null ? null : Budget::fromArray($default);
+	}
+
+	public function defaultPlan(): ?Plan
+	{
+		$data = $this->get('/plans/default');
+		$default = $this->firstArrayByKeys($data, ['plan', 'budget']);
+
+		return $default === null ? null : Plan::fromArray($default);
 	}
 
 	/** @return ResourceCollection<Account> */
 	public function accounts(string $budgetId, array $query = []): ResourceCollection
 	{
-		return $this->collection("/budgets/{$budgetId}/accounts", $query, 'accounts', static fn (array $row): ?Account => Account::fromArray($row));
+		return $this->collection("/plans/{$budgetId}/accounts", $query, 'accounts', static fn (array $row): ?Account => Account::fromArray($row));
 	}
 
 	/** @return ResourceCollection<Category> */
@@ -74,7 +101,7 @@ final readonly class YnabClient
 		$nextQuery = $query;
 
 		while (true) {
-			$data = $this->get("/budgets/{$budgetId}/categories", $nextQuery);
+			$data = $this->get("/plans/{$budgetId}/categories", $nextQuery);
 			$serverKnowledge = $this->serverKnowledge($data) ?? $serverKnowledge;
 
 			$groups = $data['category_groups'] ?? [];
@@ -128,13 +155,13 @@ final readonly class YnabClient
 	/** @return ResourceCollection<Payee> */
 	public function payees(string $budgetId, array $query = []): ResourceCollection
 	{
-		return $this->collection("/budgets/{$budgetId}/payees", $query, 'payees', static fn (array $row): ?Payee => Payee::fromArray($row));
+		return $this->collection("/plans/{$budgetId}/payees", $query, 'payees', static fn (array $row): ?Payee => Payee::fromArray($row));
 	}
 
 	/** @return ResourceCollection<Transaction> */
 	public function transactions(string $budgetId, array $query = []): ResourceCollection
 	{
-		return $this->collection("/budgets/{$budgetId}/transactions", $query, 'transactions', static fn (array $row): ?Transaction => Transaction::fromArray($row));
+		return $this->collection("/plans/{$budgetId}/transactions", $query, 'transactions', static fn (array $row): ?Transaction => Transaction::fromArray($row));
 	}
 
 	/**
@@ -143,7 +170,7 @@ final readonly class YnabClient
 	 */
 	public function patchTransactions(string $budgetId, array $payload): array
 	{
-		return $this->request('PATCH', "/budgets/{$budgetId}/transactions", [], $payload);
+		return $this->request('PATCH', "/plans/{$budgetId}/transactions", [], $payload);
 	}
 
 	/**
@@ -239,28 +266,28 @@ final readonly class YnabClient
 	/**
 	 * @template T
 	 * @param callable(array<string,mixed>):?T $mapper
+	 * @param non-empty-string|list<non-empty-string> $key
 	 * @return ResourceCollection<T>
 	 */
-	private function collection(string $path, array $query, string $key, callable $mapper): ResourceCollection
+	private function collection(string $path, array $query, string|array $key, callable $mapper): ResourceCollection
 	{
 		$items = [];
 		$serverKnowledge = null;
 		$nextQuery = $query;
+		$keys = is_array($key) ? $key : [$key];
 
 		while (true) {
 			$data = $this->get($path, $nextQuery);
 			$serverKnowledge = $this->serverKnowledge($data) ?? $serverKnowledge;
 
-			$rows = $data[$key] ?? [];
-			if (is_array($rows)) {
-				foreach ($rows as $row) {
-					if (!is_array($row)) {
-						continue;
-					}
-					$mapped = $mapper($row);
-					if ($mapped !== null) {
-						$items[] = $mapped;
-					}
+			$rows = $this->firstArrayByKeys($data, $keys) ?? [];
+			foreach ($rows as $row) {
+				if (!is_array($row)) {
+					continue;
+				}
+				$mapped = $mapper($row);
+				if ($mapped !== null) {
+					$items[] = $mapped;
 				}
 			}
 
@@ -273,6 +300,38 @@ final readonly class YnabClient
 		}
 
 		return new ResourceCollection($items, $serverKnowledge);
+	}
+
+	/**
+	 * @param array<string,mixed> $data
+	 * @param list<non-empty-string> $keys
+	 * @return null|array<mixed>
+	 */
+	private function firstArrayByKeys(array $data, array $keys): ?array
+	{
+		foreach ($keys as $key) {
+			$value = $data[$key] ?? null;
+			if (is_array($value)) {
+				return $value;
+			}
+		}
+
+		return null;
+	}
+
+	private function warnBudgetDeprecation(string $oldUsage, string $newUsage): void
+	{
+		static $warned = [];
+		if (isset($warned[$oldUsage])) {
+			return;
+		}
+
+		$warned[$oldUsage] = true;
+
+		trigger_error(
+			"{$oldUsage} is deprecated and will be removed in a future release. Use {$newUsage}.",
+			E_USER_DEPRECATED,
+		);
 	}
 
 	/** @param array<string,mixed> $data */
