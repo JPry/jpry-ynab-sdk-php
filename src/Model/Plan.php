@@ -4,20 +4,12 @@ declare(strict_types=1);
 
 namespace JPry\YNAB\Model;
 
-use JPry\YNAB\Internal\BudgetDeprecationWarningTrait;
-
-/**
- * @deprecated YNAB API v1.79.0 renamed budgets to plans. Use Plan instead.
- */
-final readonly class Budget
+final readonly class Plan
 {
-	use BudgetDeprecationWarningTrait;
-
 	public function __construct(
 		public string $id,
 		public string $name,
 	) {
-		$this->warnBudgetDeprecation(self::class, Plan::class);
 	}
 
 	/** @param array<string,mixed> $row */
